@@ -8,7 +8,21 @@ const leadSchema = new mongoose.Schema(
     company: { type: String },
     service: { type: String },
     message: { type: String },
-    source: { type: String, default: "creonox.com" },
+    source: {
+      type: String,
+      default: "creonox.com",
+      trim: true
+    },
+    status: {
+      type: String,
+      enum: ["New", "Contacted", "Qualified", "Converted", "Lost"],
+      default: "New"
+    },
+    notes: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
   },
   { timestamps: true }
 );

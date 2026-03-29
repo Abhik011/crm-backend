@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const LeadSchema = new mongoose.Schema({
   name: String,
   company: String,
+  contactPerson: String,
   phone: String,
   email: String,
   source: String,
@@ -11,9 +12,11 @@ status: {
   enum: ["New", "Contacted", "Qualified", "Converted", "Lost"],
   default: "New"
 },
+  estimatedValue: Number,   // 🔥 ADD (deal value hint)
+  service: String,
   notes: String,
   createdAt: {
-    type: Date,
+    type: Date, 
     default: Date.now
   }
 });

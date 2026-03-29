@@ -10,6 +10,11 @@ const deals = require("./routes/deals");
 const invoices = require("./routes/invoices");
 const dashboard = require("./routes/dashboard");
 const websiteRoutes = require("./routes/website");
+const agencyRoutes = require("./routes/agency");
+const reportsRoutes = require("./routes/reports");
+const projectRoutes = require("./routes/project");
+const taskRoutes = require("./routes/tasks");
+
 const app = express();
 
 connectDB();
@@ -23,6 +28,10 @@ app.use("/api/leads", leads);
 app.use("/api/customers", customers);
 app.use("/api/deals", deals);
 app.use("/api/website", websiteRoutes);
+app.use("/api/agencies", agencyRoutes);
+app.use("/api/reports", reportsRoutes);
+app.use("/api/projects", require("./routes/project"));
+app.use("/api/tasks", require("./routes/tasks"));
 app.get("/", (req, res) => {
   res.send("Creonox CRM API running");
 });

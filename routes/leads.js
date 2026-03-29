@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Lead = require("../models/Lead");
+const Lead = require("../models/clead");
 const Customer = require("../models/Customer");
 const Deal = require("../models/Deal");
 
@@ -21,7 +21,7 @@ router.post("/:id/convert", async (req, res) => {
     // Create customer
     const customer = await Customer.create({
       name: lead.name,
-      company: lead.company,
+      companyName: lead.company,
       phone: lead.phone,
       email: lead.email,
       source: lead.source,
@@ -32,7 +32,10 @@ router.post("/:id/convert", async (req, res) => {
     const deal = await Deal.create({
       customer: customer._id,
       title: lead.company || lead.name,
-      status: "Active"
+      service: "General", // optional default
+        value: lead.estimatedValue || 0,// ✅ REQUIRED FIX
+      status: "New", // ✅ VALID ENUM
+      notes: lead.notes || ""
     });
 
     lead.status = "Converted";

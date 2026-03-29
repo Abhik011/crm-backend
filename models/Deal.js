@@ -13,24 +13,55 @@ const DealSchema = new mongoose.Schema({
     ref: "Lead"
   },
 
-  route: String,
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
 
-  truckType: String,
+  service: {
+    type: String,
+    trim: true
+  },
 
-  volume: Number,
+  value: {
+    type: Number,
+    required: true,
+    min: 0
+  },
 
-  rate: Number,
+  deadline: Date,
+
+  priority: {
+    type: String,
+    enum: ["low", "medium", "high"],
+    default: "medium"
+  },
 
   status: {
     type: String,
     enum: [
-      "Negotiation",
-      "Active",
+      "New",
+      "Discussion",
+      "Proposal Sent",
       "In Progress",
       "Completed",
       "Cancelled"
     ],
-    default: "Negotiation"
+    default: "New"
+  },
+
+  notes: String,
+
+  // 🔥 NEW (IMPORTANT)
+  quoteCreated: {
+    type: Boolean,
+    default: false
+  },
+
+  invoiceCreated: {
+    type: Boolean,
+    default: false
   },
 
   createdAt: {
@@ -38,6 +69,6 @@ const DealSchema = new mongoose.Schema({
     default: Date.now
   }
 
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Deal", DealSchema);
