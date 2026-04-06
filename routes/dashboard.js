@@ -4,10 +4,9 @@ const express = require("express");
 const Invoice = require("../models/Invoice");
 const router = express.Router();
 
-// 📊 REVENUE (MONTHLY TREND)
 router.get("/revenue", async (req, res) => {
   try {
-    const invoices = await Invoice.find();
+    const invoices = await Invoice.find({ agency: req.companyId });
 
     const months = {};
 
@@ -26,17 +25,14 @@ router.get("/revenue", async (req, res) => {
     }));
 
     res.json(result);
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-
-// 📊 PIPELINE (LEADS STATUS COUNT)
 router.get("/pipeline", async (req, res) => {
   try {
-    const leads = await Lead.find();
+    const leads = await Lead.find({ agency: req.companyId });
 
     const stages = {
       New: 0,
@@ -59,7 +55,6 @@ router.get("/pipeline", async (req, res) => {
     }));
 
     res.json(result);
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -67,17 +62,19 @@ router.get("/pipeline", async (req, res) => {
 
 router.get("/stats", async (req, res) => {
   try {
-    const leads = await Lead.countDocuments();
-    const customers = await Customer.countDocuments();
-    const invoices = await Invoice.countDocuments();
+    const q = { agency: req.companyId };
+    const leads = await Lead.countDocuments(q);
+    const customers = await Customer.countDocuments(q);
+    const invoices = await Invoice.countDocuments(q);
 
     const revenueData = await Invoice.aggregate([
+      { $match: { agency: req.companyId } },
       {
         $group: {
           _id: null,
-          total: { $sum: "$amount" }
-        }
-      }
+          total: { $sum: { $ifNull: ["$totalAmount", 0] } },
+        },
+      },
     ]);
 
     const revenue = revenueData[0]?.total || 0;
@@ -86,13 +83,11 @@ router.get("/stats", async (req, res) => {
       leads,
       customers,
       invoices,
-      revenue
+      revenue,
     });
-
   } catch (error) {
     res.status(500).json({ message: "Dashboard stats error" });
   }
 });
-
 
 module.exports = router;

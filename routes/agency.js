@@ -33,19 +33,13 @@ router.post("/", async (req, res) => {
     }
 });
 
-// GET DEFAULT AGENCY
+// Current company profile (from X-Company-Id / default tenant)
 router.get("/default", async (req, res) => {
   try {
-    let agency = await Agency.findOne();
-
-    // If not exist → create default
+    const agency = await Agency.findById(req.companyId);
     if (!agency) {
-      agency = await Agency.create({
-        name: "",
-        bankDetails: {},
-      });
+      return res.status(404).json({ message: "Company not found" });
     }
-
     res.json(agency);
   } catch (err) {
     res.status(500).json({ error: err.message });

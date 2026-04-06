@@ -1,23 +1,45 @@
 const express = require("express");
 const router = express.Router();
 const Task = require("../models/Task");
+const Project = require("../models/Project");
 
-// GET TASKS BY PROJECT
 router.get("/project/:projectId", async (req, res) => {
-  const tasks = await Task.find({
-    project: req.params.projectId
-  });
-  res.json(tasks);
+  try {
+    const project = await Project.findOne({
+      _id: req.params.projectId,
+      company: req.companyId,
+    });
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    const tasks = await Task.find({
+      project: req.params.projectId,
+      company: req.companyId,
+    });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// UPDATE STATUS
 router.put("/:id", async (req, res) => {
-  const task = await Task.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true }
-  );
-  res.json(task);
+  try {
+    const body = { ...req.body };
+    delete body.company;
+
+    const task = await Task.findOneAndUpdate(
+      { _id: req.params.id, company: req.companyId },
+      body,
+      { new: true }
+    );
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

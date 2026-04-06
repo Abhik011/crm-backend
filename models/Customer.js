@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const CustomerSchema = new mongoose.Schema({
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Agency",
+    index: true,
+  },
   name: String,
   companyName: String,
   contactPerson: String,

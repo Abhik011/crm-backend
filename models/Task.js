@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const taskSchema = new mongoose.Schema({
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Agency",
+    index: true,
+  },
   project: { type: mongoose.Schema.Types.ObjectId, ref: "Project" },
 
   title: String,

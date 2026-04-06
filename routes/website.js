@@ -4,8 +4,6 @@ const router = express.Router();
 const Lead = require("../models/clead");
 const Subscription = require("../models/Subscription");
 
-
-// ✅ Create Lead (from website form)
 router.post("/lead", async (req, res) => {
   try {
     const { name, email, phone, company, service, message } = req.body;
@@ -15,6 +13,7 @@ router.post("/lead", async (req, res) => {
     }
 
     const lead = await Lead.create({
+      company: req.companyId,
       name,
       email,
       phone,
@@ -29,8 +28,6 @@ router.post("/lead", async (req, res) => {
   }
 });
 
-
-// ✅ Newsletter Subscription
 router.post("/subscribe", async (req, res) => {
   try {
     const { email } = req.body;
@@ -39,13 +36,19 @@ router.post("/subscribe", async (req, res) => {
       return res.status(400).json({ message: "Email required" });
     }
 
-    const exists = await Subscription.findOne({ email });
+    const exists = await Subscription.findOne({
+      email,
+      company: req.companyId,
+    });
 
     if (exists) {
       return res.json({ message: "Already subscribed" });
     }
 
-    const sub = await Subscription.create({ email });
+    const sub = await Subscription.create({
+      email,
+      company: req.companyId,
+    });
 
     res.status(201).json({ message: "Subscribed", sub });
   } catch (error) {

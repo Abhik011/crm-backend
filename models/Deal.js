@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const DealSchema = new mongoose.Schema({
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Agency",
+    index: true,
+  },
 
   customer: {
     type: mongoose.Schema.Types.ObjectId,

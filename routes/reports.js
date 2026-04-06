@@ -3,7 +3,6 @@ const router = express.Router();
 
 const Invoice = require("../models/Invoice");
 
-// 📊 FINANCIAL YEAR REPORT
 router.get("/financial-year", async (req, res) => {
   try {
     const { year } = req.query;
@@ -12,6 +11,7 @@ router.get("/financial-year", async (req, res) => {
     const end = new Date(`${Number(year) + 1}-03-31`);
 
     const invoices = await Invoice.find({
+      company: req.companyId,
       createdAt: { $gte: start, $lte: end },
     });
 
@@ -41,13 +41,11 @@ router.get("/financial-year", async (req, res) => {
       pending,
       months,
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 📊 MONTHLY REPORT
 router.get("/monthly", async (req, res) => {
   try {
     const { year, month } = req.query;
@@ -56,6 +54,7 @@ router.get("/monthly", async (req, res) => {
     const end = new Date(year, month, 0);
 
     const invoices = await Invoice.find({
+      company: req.companyId,
       createdAt: { $gte: start, $lte: end },
     });
 
@@ -74,7 +73,6 @@ router.get("/monthly", async (req, res) => {
       unpaid: total - paid,
       count,
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
