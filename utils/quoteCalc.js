@@ -1,7 +1,7 @@
 /**
  * @param {Array<{ name?: string, description?: string, quantity?: number, rate?: number, price?: number, total?: number }>} items
  */
-function calcQuoteTotals(items = [], gstType = "CGST_SGST", discountPct = 0) {
+export function calcQuoteTotals(items = [], gstType = "CGST_SGST", discountPct = 0) {
   const calculatedItems = items.map((item) => {
     const qty = Number(item.quantity || 1);
     const rate = Number(item.rate ?? item.price ?? 0);
@@ -49,5 +49,3 @@ function calcQuoteTotals(items = [], gstType = "CGST_SGST", discountPct = 0) {
     totalAmount,
   };
 }
-
-module.exports = { calcQuoteTotals };

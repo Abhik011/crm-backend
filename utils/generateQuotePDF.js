@@ -1,4 +1,4 @@
-const PDFDocument = require("pdfkit");
+import PDFDocument from "pdfkit";
 
 function pickSnapshot(quote) {
   const ag = quote.agencySnapshot || {};
@@ -167,4 +167,4 @@ function generateQuotePDF(quote, res) {
   doc.end();
 }
 
-module.exports = generateQuotePDF;
+export default generateQuotePDF;

@@ -1,7 +1,7 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const DealSchema = new mongoose.Schema({
-  company: {
+  agency: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Agency",
     index: true,
@@ -76,4 +76,4 @@ const DealSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-module.exports = mongoose.model("Deal", DealSchema);
+export default mongoose.model("Deal", DealSchema);

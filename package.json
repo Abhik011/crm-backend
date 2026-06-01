@@ -2,23 +2,34 @@
   "name": "backend",
   "version": "1.0.0",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "@clerk/nextjs": "^7.0.12",
     "@prisma/client": "^7.4.2",
+    "aws-sdk": "^2.1693.0",
     "cors": "^2.8.6",
+    "csv-parser": "^3.2.1",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.2",
     "mongoose": "^9.2.4",
+    "multer": "^2.1.1",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^7.0.13",
     "pdfkit": "^0.18.0",
     "prisma": "^7.4.2",
-    "stripe": "^22.0.0"
+    "socket.io": "^4.8.3",
+    "stripe": "^22.0.0",
+    "xlsx": "^0.18.5"
   }
 }

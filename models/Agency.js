@@ -1,7 +1,16 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const AgencySchema = new mongoose.Schema(
   {
+    /** Clerk user id (`sub`) — owner of this workspace (one org per account for now) */
+    clerkUserId: {
+      type: String,
+      trim: true,
+      sparse: true,
+      unique: true,
+      index: true,
+    },
+
     name: String,
     tagline: String,
     address: String,
@@ -17,18 +26,22 @@ const AgencySchema = new mongoose.Schema(
       ifsc: String,
       bank: String,
     },
-
     /** SaaS: free | starter | pro — synced from Stripe when applicable */
     planKey: {
       type: String,
       default: "free",
       index: true,
     },
+     upiId: {
+      type: String,
+      trim: true,
+    },
+    // ✅ NEW: Place of Supply (GST state)
+    placeOfSupply: {
+      type: String,
+      trim: true,
+    },
 
-    /**
-     * none — no Stripe subscription yet
-     * trialing | active | past_due | canceled | unpaid — Stripe-aligned
-     */
     subscriptionStatus: {
       type: String,
       enum: ["none", "trialing", "active", "past_due", "canceled", "unpaid"],
@@ -40,8 +53,14 @@ const AgencySchema = new mongoose.Schema(
 
     currentPeriodEnd: Date,
     cancelAtPeriodEnd: { type: Boolean, default: false },
+
+    /** Owner setup wizard: name, logo, plan (false until completed) */
+    workspaceOnboardingCompleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Agency", AgencySchema);
+export default mongoose.model("Agency", AgencySchema);

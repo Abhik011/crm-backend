@@ -1,7 +1,8 @@
-const express = require("express");
+import express from "express";
+import Customer from "../models/Customer.js";
+import { assertWithinLimit } from "../services/assertPlanLimit.js";
+
 const router = express.Router();
-const Customer = require("../models/Customer");
-const { assertWithinLimit } = require("../services/assertPlanLimit");
 
 router.post("/", async (req, res) => {
   try {
@@ -9,7 +10,7 @@ router.post("/", async (req, res) => {
 
     const customer = new Customer({
       ...req.body,
-      company: req.companyId,
+      agency: req.companyId,
     });
     await customer.save();
     res.json(customer);
@@ -18,9 +19,29 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.get("/search", async (req, res) => {
+  try {
+    const q = req.query.q;
+
+    const customers = await Customer.find({
+      agency: req.companyId,
+      $or: [
+        { name: new RegExp(q, "i") },
+        { companyName: new RegExp(q, "i") },
+        { email: new RegExp(q, "i") },
+        
+      ],
+    }).limit(10);
+
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
-    const customers = await Customer.find({ company: req.companyId });
+    const customers = await Customer.find({ agency: req.companyId });
     res.json(customers);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -31,7 +52,7 @@ router.get("/:id", async (req, res) => {
   try {
     const customer = await Customer.findOne({
       _id: req.params.id,
-      company: req.companyId,
+      agency: req.companyId,
     });
 
     if (!customer)
@@ -43,4 +64,4 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

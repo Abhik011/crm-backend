@@ -1,14 +1,8 @@
-/**
- * SaaS plan definitions — limits are per company (tenant).
- * -1 = unlimited
- * stripePriceId: set via env for paid tiers (see getStripePriceId)
- */
-
 function envPrice(key) {
   return process.env[key] || null;
 }
 
-const PLANS = {
+export const PLANS = {
   free: {
     key: "free",
     name: "Free",
@@ -53,32 +47,24 @@ const PLANS = {
   },
 };
 
-function getStripePriceId(planKey) {
+export function getStripePriceId(planKey) {
   const p = PLANS[planKey];
   if (!p || !p.stripePriceIdEnv) return null;
   return envPrice(p.stripePriceIdEnv);
 }
 
-function getLimitsForPlan(planKey) {
+export function getLimitsForPlan(planKey) {
   const p = PLANS[planKey] || PLANS.free;
   return { ...p.limits };
 }
 
-function listPlansPublic() {
+export function listPlansPublic() {
   return Object.values(PLANS).map((p) => ({
     key: p.key,
     name: p.name,
     description: p.description,
     limits: p.limits,
     features: p.features,
-    /** Hint for UI — actual checkout uses server-side price IDs */
     isPaid: !!p.stripePriceIdEnv,
   }));
 }
-
-module.exports = {
-  PLANS,
-  getLimitsForPlan,
-  getStripePriceId,
-  listPlansPublic,
-};

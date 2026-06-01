@@ -1,27 +1,48 @@
-const Lead = require("../models/clead");
-const Customer = require("../models/Customer");
-const express = require("express");
-const Invoice = require("../models/Invoice");
-const router = express.Router();
+import express from "express";
+import Lead from "../models/clead.js";
+import Customer from "../models/Customer.js";
+import Invoice from "../models/Invoice.js";
 
+const router = express.Router();
 router.get("/revenue", async (req, res) => {
   try {
+    const { range = "month" } = req.query;
+
     const invoices = await Invoice.find({ agency: req.companyId });
 
-    const months = {};
+    const data = {};
 
     invoices.forEach((inv) => {
-      const month = new Date(inv.createdAt).toLocaleString("default", {
-        month: "short",
-      });
+      const date = new Date(inv.createdAt);
 
-      if (!months[month]) months[month] = 0;
-      months[month] += inv.totalAmount || 0;
+      let key;
+
+      if (range === "day") {
+        key = date.toLocaleDateString();
+      } else if (range === "week") {
+        const week = Math.ceil(date.getDate() / 7);
+        key = `W${week}`;
+      } else if (range === "year") {
+        key = date.getFullYear().toString();
+      } else {
+        key = date.toLocaleString("default", { month: "short" });
+      }
+
+      if (!data[key]) data[key] = 0;
+      data[key] += inv.totalAmount || 0;
     });
 
-    const result = Object.keys(months).map((m) => ({
-      month: m,
-      revenue: months[m],
+    // 🔥 FILL MISSING MONTHS
+    if (range === "month") {
+      const monthsList = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      monthsList.forEach((m) => {
+        if (!data[m]) data[m] = 0;
+      });
+    }
+
+    const result = Object.keys(data).map((k) => ({
+      month: k,
+      revenue: data[k],
     }));
 
     res.json(result);
@@ -90,4 +111,4 @@ router.get("/stats", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

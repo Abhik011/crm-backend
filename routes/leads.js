@@ -1,13 +1,17 @@
-const express = require("express");
-const router = express.Router();
-const Lead = require("../models/clead");
-const Customer = require("../models/Customer");
-const Deal = require("../models/Deal");
-const { assertWithinLimit } = require("../services/assertPlanLimit");
-const Quote = require("../models/Quote");
-const Agency = require("../models/Agency");
-const { calcQuoteTotals } = require("../utils/quoteCalc");
+import express from "express";
 
+import Lead from "../models/clead.js";
+import Customer from "../models/Customer.js";
+import Deal from "../models/Deal.js";
+import Quote from "../models/Quote.js";
+import Agency from "../models/Agency.js";
+import { calculateLeadScore } from "../utils/calculateLeadScore.js";
+import { assertWithinLimit } from "../services/assertPlanLimit.js";
+import { calcQuoteTotals } from "../utils/quoteCalc.js";
+import Reminder from "../models/Reminder.js";
+const router = express.Router();
+
+// 🔥 CONVERT LEAD → CUSTOMER + DEAL
 router.post("/:id/convert", async (req, res) => {
   try {
     if (!(await assertWithinLimit(req, res, "customers"))) return;
@@ -20,15 +24,16 @@ router.post("/:id/convert", async (req, res) => {
 
     if (!lead) return res.status(404).json({ message: "Lead not found" });
 
-    if (lead.status !== "Qualified")
+    if (lead.status !== "Qualified") {
       return res.status(400).json({
         message: "Lead must be Qualified before conversion",
       });
+    }
 
     const customer = await Customer.create({
-      agency: req.companyId, // 🔑 ownership
+      agency: req.companyId,
       name: lead.name,
-      companyName: lead.companyName, // from lead input
+      companyName: lead.companyName,
       phone: lead.phone,
       email: lead.email,
       source: lead.source,
@@ -60,32 +65,279 @@ router.post("/:id/convert", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    if (!(await assertWithinLimit(req, res, "leads"))) return;
 
-    const lead = new Lead({
+    if (
+      !(await assertWithinLimit(
+        req,
+        res,
+        "leads"
+      ))
+    )
+      return;
+
+    const payload = {
       ...req.body,
+
       agency: req.companyId,
-    });
-    await lead.save();
+      owner:
+        req.body.owner ||
+        req.user._id,
+    };
+
+    /* =========================
+       AUTO LEAD SCORE
+    ========================= */
+
+    payload.leadScore =
+      calculateLeadScore(
+        payload
+      );
+
+    /* =========================
+       AUTO TEMPERATURE
+    ========================= */
+
+    if (
+      payload.leadScore >= 70
+    ) {
+
+      payload.temperature =
+        "Hot";
+
+    } else if (
+      payload.leadScore >= 40
+    ) {
+
+      payload.temperature =
+        "Warm";
+
+    } else {
+
+      payload.temperature =
+        "Cold";
+
+    }
+
+    const lead =
+      await Lead.create(
+        payload
+      );
+
     res.json(lead);
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+
+    console.error(err);
+
+    res.status(500).json({
+      error: err.message,
+    });
+
   }
 });
 
+// ✅ GET ALL LEADS
 router.get("/", async (req, res) => {
   try {
-    const leads = await Lead.find({ agency: req.companyId }).sort({
-      createdAt: -1,
-    });
+    let query = {
+      agency: req.companyId,
+    };
+
+    const role = req.user.role;
+
+    // Admin + Super Admin see all
+    if (
+      role !== "admin" &&
+      role !== "super_admin"
+    ) {
+      query.owner =
+        req.user._id;
+    }
+
+    const leads =
+      await Lead.find(query)
+        .populate(
+          "owner",
+          "name email image"
+        )
+        .sort({
+          createdAt: -1,
+        });
+
     res.json(leads);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+router.put("/:id", async (req, res) => {
+  try {
+
+    const existingLead =
+      await Lead.findOne({
+        _id: req.params.id,
+        agency: req.companyId,
+      });
+
+    if (!existingLead) {
+      return res.status(404).json({
+        message: "Lead not found",
+      });
+    }
+
+    const payload = {
+      ...req.body,
+      agency: req.companyId,
+    };
+
+    const isAdmin =
+      req.user.role === "admin" ||
+      req.user.role === "super_admin";
+
+    // only admin can change owner
+    if (!isAdmin) {
+      delete payload.owner;
+    } else if (!payload.owner) {
+      payload.owner =
+        existingLead.owner;
+    }
+
+    /* =========================
+       RECALCULATE SCORE
+    ========================= */
+
+    payload.leadScore =
+      calculateLeadScore(
+        payload
+      );
+
+    /* =========================
+       AUTO TEMPERATURE
+    ========================= */
+
+    if (
+      payload.leadScore >= 70
+    ) {
+      payload.temperature =
+        "Hot";
+
+    } else if (
+      payload.leadScore >= 40
+    ) {
+      payload.temperature =
+        "Warm";
+
+    } else {
+      payload.temperature =
+        "Cold";
+    }
+
+    const lead =
+      await Lead.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          agency: req.companyId
+        },
+        payload,
+        {
+          new: true
+        }
+      );
+
+    if (!lead) {
+
+      return res
+        .status(404)
+        .json({
+          message:
+            "Lead not found"
+        });
+
+    }
+
+    /* ======================
+    CREATE REMINDER
+    ====================== */
+
+    if (
+      payload.nextFollowUp
+    ) {
+
+      const exists =
+        await Reminder.findOne({
+
+          leadId:
+            lead._id,
+
+          reminderAt:
+            new Date(
+              payload.nextFollowUp
+            ),
+
+          assignedTo:
+            lead.owner,
+
+          status:
+            "Pending"
+
+        });
+
+      if (
+        !exists
+      ) {
+
+        await Reminder.create({
+
+          title:
+            payload.followUpType ||
+            payload.followUps?.[
+              payload.followUps.length - 1
+            ]?.type ||
+            "Task",
+
+          description:
+            payload.notes ||
+            "Auto created from lead form",
+
+          reminderAt:
+            new Date(
+              payload.nextFollowUp
+            ),
+
+          leadId:
+            lead._id,
+
+          assignedTo:
+            lead.owner,
+
+          companyId:
+            req.companyId,
+
+          status:
+            "Pending"
+
+        });
+
+      }
+
+    }
+
+    res.json(
+      lead
+    );
 
 
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      error: err.message,
+    });
+
+  }
+});
+// ✅ UPDATE STATUS + AUTO QUOTE
 router.put("/:id/status", async (req, res) => {
   try {
     const lead = await Lead.findOneAndUpdate(
@@ -103,13 +355,19 @@ router.put("/:id/status", async (req, res) => {
       const agency = await Agency.findById(req.companyId);
 
       const calc = calcQuoteTotals(
-        [{ name: lead.service || "Service", quantity: 1, rate: lead.estimatedValue || 0 }],
+        [
+          {
+            name: lead.service || "Service",
+            quantity: 1,
+            rate: lead.estimatedValue || 0,
+          },
+        ],
         "CGST_SGST",
         0
       );
 
       await Quote.create({
-        company: req.companyId,
+        agency: req.companyId,
         title: lead.companyName || lead.name,
         quoteNumber: "QT-" + Date.now(),
         items: calc.calculatedItems,
@@ -118,7 +376,6 @@ router.put("/:id/status", async (req, res) => {
         amount: calc.totalAmount,
         status: "Draft",
 
-        // 🔥 SNAPSHOTS
         agencySnapshot: {
           name: agency?.name,
           address: agency?.address,
@@ -142,4 +399,32 @@ router.put("/:id/status", async (req, res) => {
   }
 });
 
-module.exports = router;
+router.delete("/:id", async (req, res) => {
+  try {
+    const lead =
+      await Lead.findOneAndDelete({
+        _id: req.params.id,
+        agency: req.companyId,
+      });
+
+    if (!lead) {
+      return res.status(404).json({
+        message: "Lead not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message:
+        "Lead deleted successfully",
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      error: err.message,
+    });
+  }
+});
+export default router;

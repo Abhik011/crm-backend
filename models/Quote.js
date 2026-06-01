@@ -1,8 +1,8 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const QuoteSchema = new mongoose.Schema(
   {
-    company: {
+    agency: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Agency",
       required: true,
@@ -89,4 +89,4 @@ const QuoteSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Quote", QuoteSchema);
+export default mongoose.model("Quote", QuoteSchema);

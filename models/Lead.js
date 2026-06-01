@@ -1,8 +1,8 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const LeadSchema = new mongoose.Schema({
   name: String,
-  company: String,
+  agency: String,
   contactPerson: String,
   phone: String,
   email: String,
@@ -21,4 +21,4 @@ status: {
   }
 });
 
-module.exports = mongoose.model("Lead", LeadSchema);
+export default mongoose.model("Lead", LeadSchema);

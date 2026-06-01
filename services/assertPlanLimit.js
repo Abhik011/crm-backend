@@ -1,10 +1,10 @@
-const { getLimitsForPlan } = require("../config/plans");
-const { countForCompany } = require("./usage");
+import { getLimitsForPlan } from "../config/plans.js";
+import { countForCompany } from "./usage.js";
 
 /**
  * Returns false and sends JSON error if limit exceeded; otherwise true.
  */
-async function assertWithinLimit(req, res, resource) {
+export async function assertWithinLimit(req, res, resource) {
   const planKey = req.agency?.planKey || "free";
   const limits = req.planLimits || getLimitsForPlan(planKey);
   const max = limits[resource];
@@ -12,6 +12,7 @@ async function assertWithinLimit(req, res, resource) {
   if (max === -1 || max === undefined) return true;
 
   const usage = await countForCompany(req.companyId, resource);
+
   if (usage >= max) {
     res.status(403).json({
       code: "PLAN_LIMIT",
@@ -23,7 +24,6 @@ async function assertWithinLimit(req, res, resource) {
     });
     return false;
   }
+
   return true;
 }
-
-module.exports = { assertWithinLimit };

@@ -1,16 +1,17 @@
-const express = require("express");
+import express from "express";
+import Deal from "../models/Deal.js";
+import Quote from "../models/Quote.js";
+import Invoice from "../models/Invoice.js";
+import Customer from "../models/Customer.js";
+import Agency from "../models/Agency.js";
+import { calcQuoteTotals } from "../utils/quoteCalc.js";
+import { assertWithinLimit } from "../services/assertPlanLimit.js";
+
 const router = express.Router();
-const Deal = require("../models/Deal");
-const Quote = require("../models/Quote");
-const Invoice = require("../models/Invoice");
-const Customer = require("../models/Customer");
-const Agency = require("../models/Agency");
-const { calcQuoteTotals } = require("../utils/quoteCalc");
-const { assertWithinLimit } = require("../services/assertPlanLimit");
 
 router.get("/", async (req, res) => {
   try {
-    const deals = await Deal.find({ company: req.companyId })
+    const deals = await Deal.find({ agency: req.companyId })
       .populate("customer")
       .sort({ createdAt: -1 });
 
@@ -26,14 +27,14 @@ router.post("/", async (req, res) => {
 
     const cust = await Customer.findOne({
       _id: req.body.customer,
-      company: req.companyId,
+      agency: req.companyId,
     });
     if (!cust) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
     const deal = await Deal.create({
-      company: req.companyId,
+      agency: req.companyId,
       customer: req.body.customer,
       title: req.body.title,
       service: req.body.service,
@@ -52,7 +53,7 @@ router.post("/", async (req, res) => {
 router.get("/customer/:customerId", async (req, res) => {
   try {
     const deals = await Deal.find({
-      company: req.companyId,
+      agency: req.companyId,
       customer: req.params.customerId,
     });
 
@@ -66,7 +67,7 @@ router.get("/:id", async (req, res) => {
   try {
     const deal = await Deal.findOne({
       _id: req.params.id,
-      company: req.companyId,
+      agency: req.companyId,
     }).populate("customer");
     if (!deal) return res.status(404).json({ message: "Deal not found" });
     res.json(deal);
@@ -80,7 +81,7 @@ router.put("/:id", async (req, res) => {
     const body = { ...req.body };
     delete body.company;
     const updated = await Deal.findOneAndUpdate(
-      { _id: req.params.id, company: req.companyId },
+      { _id: req.params.id, agency: req.companyId },
       body,
       { new: true }
     );
@@ -95,7 +96,7 @@ router.delete("/:id", async (req, res) => {
   try {
     const r = await Deal.deleteOne({
       _id: req.params.id,
-      company: req.companyId,
+      agency: req.companyId,
     });
     if (r.deletedCount === 0) {
       return res.status(404).json({ message: "Deal not found" });
@@ -110,7 +111,7 @@ router.put("/:id/status", async (req, res) => {
   try {
     const deal = await Deal.findOne({
       _id: req.params.id,
-      company: req.companyId,
+      agency: req.companyId,
     });
     if (!deal) return res.status(404).json({ message: "Deal not found" });
 
@@ -139,7 +140,7 @@ router.put("/:id/status", async (req, res) => {
       );
 
       await Quote.create({
-        company: req.companyId,
+        agency: req.companyId,
         customer: deal.customer,
         deal: deal._id,
         title: deal.title || "Quotation",
@@ -192,7 +193,7 @@ router.put("/:id/status", async (req, res) => {
       const totalAmount = subtotal + cgst + sgst;
 
       await Invoice.create({
-        company: req.companyId,
+        agency: req.companyId,
         customer: deal.customer,
         deal: deal._id,
         agency: agencyData?._id,
@@ -244,7 +245,7 @@ router.put("/:id/status", async (req, res) => {
     if (newStatus === "Completed") {
       const invoice = await Invoice.findOne({
         deal: deal._id,
-        company: req.companyId,
+        agency: req.companyId,
       });
 
       if (invoice) {
@@ -260,4 +261,4 @@ router.put("/:id/status", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,13 +1,15 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const resolveTenant = require("../middleware/tenant");
-const Agency = require("../models/Agency");
-const {
+import express from "express";
+import mongoose from "mongoose";
+import Stripe from "stripe";
+
+import requireAuth from "../middleware/requireAuth.js";
+import Agency from "../models/Agency.js";
+import {
   listPlansPublic,
   getStripePriceId,
   PLANS,
-} = require("../config/plans");
-const { getUsageSnapshot } = require("../services/usage");
+} from "../config/plans.js";
+import { getUsageSnapshot } from "../services/usage.js";
 
 const router = express.Router();
 
@@ -15,7 +17,7 @@ router.get("/plans", (req, res) => {
   res.json({ plans: listPlansPublic() });
 });
 
-router.get("/status", resolveTenant, async (req, res) => {
+router.get("/status", requireAuth, async (req, res) => {
   try {
     const usage = await getUsageSnapshot(req.companyId);
     res.json({
@@ -32,12 +34,12 @@ router.get("/status", resolveTenant, async (req, res) => {
   }
 });
 
-router.post("/checkout", resolveTenant, async (req, res) => {
+router.post("/checkout", requireAuth, async (req, res) => {
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
       return res.status(503).json({ message: "Stripe is not configured" });
     }
-    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const { planKey } = req.body;
     const priceId = getStripePriceId(planKey);
     if (!priceId || !PLANS[planKey]?.stripePriceIdEnv) {
@@ -91,12 +93,12 @@ router.post("/checkout", resolveTenant, async (req, res) => {
   }
 });
 
-router.post("/portal", resolveTenant, async (req, res) => {
+router.post("/portal", requireAuth, async (req, res) => {
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
       return res.status(503).json({ message: "Stripe is not configured" });
     }
-    const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const agency = await Agency.findById(req.companyId);
     if (!agency?.stripeCustomerId) {
       return res.status(400).json({
@@ -147,7 +149,7 @@ async function stripeWebhookHandler(req, res) {
     return res.status(503).send("Stripe webhook not configured");
   }
 
-  const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const sig = req.headers["stripe-signature"];
   let event;
 
@@ -242,5 +244,5 @@ async function stripeWebhookHandler(req, res) {
   res.json({ received: true });
 }
 
-module.exports = router;
-module.exports.stripeWebhookHandler = stripeWebhookHandler;
+export { stripeWebhookHandler };
+export default router;

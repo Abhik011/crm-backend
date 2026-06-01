@@ -21,4 +21,4 @@ function subscriptionWriteGate(req, res, next) {
   next();
 }
 
-module.exports = subscriptionWriteGate;
+export default subscriptionWriteGate;

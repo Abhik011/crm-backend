@@ -1,12 +1,13 @@
-const express = require("express");
+import express from "express";
+import Lead from "../models/clead.js";
+import Quote from "../models/Quote.js";
+import Customer from "../models/Customer.js";
+import Agency from "../models/Agency.js";
+import generateQuotePDF from "../utils/generateQuotePDF.js";
+import { calcQuoteTotals } from "../utils/quoteCalc.js";
+import { assertWithinLimit } from "../services/assertPlanLimit.js";
+
 const router = express.Router();
-const Lead = require("../models/clead");
-const Quote = require("../models/Quote");
-const Customer = require("../models/Customer");
-const Agency = require("../models/Agency");
-const generateQuotePDF = require("../utils/generateQuotePDF");
-const { calcQuoteTotals } = require("../utils/quoteCalc");
-const { assertWithinLimit } = require("../services/assertPlanLimit");
 
 router.post("/", async (req, res) => {
   try {
@@ -25,7 +26,7 @@ router.post("/", async (req, res) => {
 
     const customerData = await Customer.findOne({
       _id: customer,
-      company: req.companyId,
+      agency: req.companyId,
     });
     if (!customerData) {
       return res.status(404).json({ message: "Customer not found" });
@@ -35,7 +36,7 @@ router.post("/", async (req, res) => {
     const calc = calcQuoteTotals(items, gstType, discount);
 
     const quote = await Quote.create({
-      company: req.companyId,
+      agency: req.companyId,
       customer,
       deal: deal || undefined,
       title: title || "Quotation",
@@ -85,7 +86,7 @@ router.get("/search", async (req, res) => {
   const q = req.query.q;
 
   const customers = await Customer.find({
-    company: req.companyId,
+    agency: req.companyId,
     $or: [
       { name: new RegExp(q, "i") },
       { companyName: new RegExp(q, "i") },
@@ -105,7 +106,7 @@ router.get("/search", async (req, res) => {
 
 router.get("/", async (req, res) => {
   try {
-    const quotes = await Quote.find({ company: req.companyId })
+    const quotes = await Quote.find({ agency: req.companyId })
       .populate("customer")
       .sort({ createdAt: -1 });
     res.json(quotes);
@@ -117,7 +118,7 @@ router.get("/", async (req, res) => {
 router.get("/customer/:customerId", async (req, res) => {
   try {
     const quotes = await Quote.find({
-      company: req.companyId,
+      agency: req.companyId,
       customer: req.params.customerId,
     })
       .sort({ createdAt: -1 });
@@ -131,7 +132,7 @@ router.get("/:id/view", async (req, res) => {
   try {
     const quote = await Quote.findOne({
       _id: req.params.id,
-      company: req.companyId,
+      agency: req.companyId,
     });
 
     if (!quote) return res.status(404).json({ message: "Not found" });
@@ -172,7 +173,7 @@ router.get("/:id/pdf", async (req, res) => {
   try {
     const quote = await Quote.findOne({
       _id: req.params.id,
-      company: req.companyId,
+      agency: req.companyId,
     });
 
     if (!quote) return res.status(404).json({ message: "Quote not found" });
@@ -193,7 +194,7 @@ router.get("/:id", async (req, res) => {
   try {
     const quote = await Quote.findOne({
       _id: req.params.id,
-      company: req.companyId,
+      agency: req.companyId,
     })
       .populate("customer")
       .populate("deal");
@@ -208,7 +209,7 @@ router.put("/:id", async (req, res) => {
   try {
     const quote = await Quote.findOne({
       _id: req.params.id,
-      company: req.companyId,
+      agency: req.companyId,
     });
     if (!quote) return res.status(404).json({ message: "Not found" });
 
@@ -247,11 +248,11 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    await Quote.deleteOne({ _id: req.params.id, company: req.companyId });
+    await Quote.deleteOne({ _id: req.params.id, agency: req.companyId });
     res.json({ message: "Deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-module.exports = router;
+export default router;

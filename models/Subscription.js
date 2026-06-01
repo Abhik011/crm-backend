@@ -1,8 +1,8 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const subscriptionSchema = new mongoose.Schema(
   {
-    company: {
+    agency: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Agency",
       index: true,
@@ -13,6 +13,6 @@ const subscriptionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-subscriptionSchema.index({ company: 1, email: 1 }, { unique: true });
+subscriptionSchema.index({ agency: 1, email: 1 }, { unique: true });
 
-module.exports = mongoose.model("Subscription", subscriptionSchema);
+export default mongoose.model("Subscription", subscriptionSchema);

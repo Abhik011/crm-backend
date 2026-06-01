@@ -1,18 +1,19 @@
-const Agency = require("../models/Agency");
-const Customer = require("../models/Customer");
-const Deal = require("../models/Deal");
-const Invoice = require("../models/Invoice");
-const Quote = require("../models/Quote");
-const Project = require("../models/Project");
-const Task = require("../models/Task");
-const Subscription = require("../models/Subscription");
-const Lead = require("../models/clead");
+import Agency from "../models/Agency.js";
+import Customer from "../models/Customer.js";
+import Deal from "../models/Deal.js";
+import Invoice from "../models/Invoice.js";
+import Quote from "../models/Quote.js";
+import Project from "../models/Project.js";
+import Task from "../models/Task.js";
+import Subscription from "../models/Subscription.js";
+import Lead from "../models/clead.js";
 
 /**
- * One-time style migration: attach default agency to legacy documents missing `company`.
+ * One-time style migration: attach default agency to legacy documents missing `agency`.
  */
 async function backfillCompany() {
   let first = await Agency.findOne().sort({ createdAt: 1, _id: 1 });
+
   if (!first) {
     first = await Agency.create({
       name: "Default Company",
@@ -21,6 +22,7 @@ async function backfillCompany() {
       subscriptionStatus: "active",
     });
   }
+
   const cid = first._id;
 
   await Agency.updateMany(
@@ -52,12 +54,16 @@ async function backfillCompany() {
 
   for (const Model of models) {
     await Model.updateMany(
-      { $or: [{ company: { $exists: false } }, { company: null }] },
-      { $set: { company: cid } }
+      { $or: [{ agency: { $exists: false } }, { agency: null }] },
+      { $set: { agency: cid } }
     );
   }
 
-  console.log("Company field backfill complete (default agency:", String(cid), ")");
+  console.log(
+    "Company field backfill complete (default agency:",
+    String(cid),
+    ")"
+  );
 }
 
-module.exports = backfillCompany;
+export default backfillCompany;

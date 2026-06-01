@@ -1,8 +1,8 @@
-const express = require("express");
-const router = express.Router();
+import express from "express";
+import Lead from "../models/clead.js";
+import Subscription from "../models/Subscription.js";
 
-const Lead = require("../models/clead");
-const Subscription = require("../models/Subscription");
+const router = express.Router();
 
 router.post("/lead", async (req, res) => {
   try {
@@ -13,7 +13,7 @@ router.post("/lead", async (req, res) => {
     }
 
     const lead = await Lead.create({
-      company: req.companyId,
+      agency: req.companyId,
       name,
       email,
       phone,
@@ -38,7 +38,7 @@ router.post("/subscribe", async (req, res) => {
 
     const exists = await Subscription.findOne({
       email,
-      company: req.companyId,
+      agency: req.companyId,
     });
 
     if (exists) {
@@ -47,7 +47,7 @@ router.post("/subscribe", async (req, res) => {
 
     const sub = await Subscription.create({
       email,
-      company: req.companyId,
+      agency: req.companyId,
     });
 
     res.status(201).json({ message: "Subscribed", sub });
@@ -56,4 +56,4 @@ router.post("/subscribe", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
